@@ -15,6 +15,7 @@ object ExampleRelation {
   * - on the first line, the number of rows `n`
   * - for each column, there is one line with the column name and `n` with the values for each row
   * - all values are strings
+  * WARNING: this is meant exclusively to get a sense of how the Data Source API works
   */
 final class ExampleRelation(override val sqlContext: SQLContext, content: IndexedSeq[String])
   extends BaseRelation with PrunedScan {
