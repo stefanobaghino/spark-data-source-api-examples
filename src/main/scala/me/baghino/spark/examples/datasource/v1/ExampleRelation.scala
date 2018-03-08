@@ -19,20 +19,22 @@ object ExampleRelation {
   * @param sqlContext
   * @param content
   */
-final class ExampleRelation(override val sqlContext: SQLContext, content: IndexedSeq[String]) extends BaseRelation with PrunedScan {
+final class ExampleRelation(override val sqlContext: SQLContext, content: IndexedSeq[String])
+  extends BaseRelation with PrunedScan {
 
-  private val numRows = content(0).toInt
-  private val columns = (1 until content.size by (numRows + 1)).map(i => content(i) -> i)
-
-  private def indexesForColumns(requiredColumns: Array[String]): Array[Int] =
-    requiredColumns.flatMap(r => columns.find(c => c._1 == r).map(_._2))
+  private val numRows: Int = content(0).toInt
+  private val columnStartingIndexes = 1 until content.size by (numRows + 1)
+  private val columnNames = columnStartingIndexes.map(content)
+  private val columnIndex = columnNames.zip(columnStartingIndexes).toMap
 
   override def schema: StructType =
-    StructType(columns.map(c => StructField(c._1, StringType)))
+    StructType(columnNames.map(StructField(_, StringType)))
 
   override def buildScan(requiredColumns: Array[String]): RDD[Row] = {
-    ExampleRelation.logger.info(s"buildScan (pruned): ${requiredColumns.mkString(", ")}")
-    sqlContext.sparkContext.parallelize((1 to numRows).map(i => Row(indexesForColumns(requiredColumns).map(_ + i).map(content): _*)))
+    ExampleRelation.logger.info("buildScan (requiredColumns: {})", requiredColumns.mkString(", "))
+    sqlContext.sparkContext.parallelize(
+      (1 to numRows).map(i => Row(requiredColumns.collect(columnIndex).map(_ + i).map(content): _*))
+    )
   }
 
 }

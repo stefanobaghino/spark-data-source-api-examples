@@ -19,28 +19,19 @@ final class ExampleRelationProvider extends RelationProvider with CreatableRelat
   override def shortName(): String = "example"
 
   override def createRelation(sqlContext: SQLContext, parameters: Map[String, String]): BaseRelation = {
-
     ExampleRelationProvider.logger.info("createRelation (read-only)")
-
     val content = Files.newBufferedReader(Paths.get(parameters("path"))).lines().iterator().asScala.to[Vector]
     new ExampleRelation(sqlContext, content)
-
   }
 
   override def createRelation(sqlContext: SQLContext, mode: SaveMode, parameters: Map[String, String], data: DataFrame): BaseRelation = {
-
     ExampleRelationProvider.logger.info("createRelation (creatable)")
-
     import sqlContext.implicits._
-
     data.cache()
     val content = data.count().toString +: data.columns.map(c => c -> data.select(c).as[String]).flatMap(p => p._1 +: p._2.collect())
     data.unpersist()
-
     Files.write(Paths.get(parameters("path")), content.mkString(System.lineSeparator()).getBytes)
-
     new ExampleRelation(sqlContext, content)
-
   }
 
 }
