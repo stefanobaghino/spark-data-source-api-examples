@@ -9,28 +9,30 @@ import org.slf4j.LoggerFactory
 import scala.collection.JavaConverters.asScalaIteratorConverter
 
 object ExampleRelationProvider {
-
   private[ExampleRelationProvider] val logger = LoggerFactory.getLogger(classOf[ExampleRelationProvider])
-
 }
 
+/**
+  * An example relation that reads a "columnar" file formatted as follows:
+  * - on the first line, the number of rows `n`
+  * - for each column, there is one line with the column name and `n` with the values for each row
+  * - all values are strings
+  */
 final class ExampleRelationProvider extends RelationProvider with CreatableRelationProvider with DataSourceRegister {
 
   override def shortName(): String = "example"
 
   override def createRelation(sqlContext: SQLContext, parameters: Map[String, String]): BaseRelation = {
-    ExampleRelationProvider.logger.info("createRelation (read-only)")
     val content = Files.newBufferedReader(Paths.get(parameters("path"))).lines().iterator().asScala.to[Vector]
     new ExampleRelation(sqlContext, content)
   }
 
-  override def createRelation(sqlContext: SQLContext, mode: SaveMode, parameters: Map[String, String], data: DataFrame): BaseRelation = {
-    ExampleRelationProvider.logger.info("createRelation (creatable)")
-    import sqlContext.implicits._
-    data.cache()
-    val content = data.count().toString +: data.columns.map(c => c -> data.select(c).as[String]).flatMap(p => p._1 +: p._2.collect())
-    data.unpersist()
-    Files.write(Paths.get(parameters("path")), content.mkString(System.lineSeparator()).getBytes)
+  override def createRelation(sqlContext: SQLContext, mode: SaveMode, parameters: Map[String, String], df: DataFrame): BaseRelation = {
+    val array = df.select(df.columns.map(c => df.col(c).cast("string")): _*).collect()
+    val count = array.length.toString
+    val data = df.columns.zipWithIndex.map { case (column, i) => column -> array.map(_.getString(i)) }
+    val content = count +: data.flatMap { case (column, values) => column +: values }
+    Files.write(Paths.get(parameters("path")), content.mkString(System.lineSeparator).getBytes)
     new ExampleRelation(sqlContext, content)
   }
 

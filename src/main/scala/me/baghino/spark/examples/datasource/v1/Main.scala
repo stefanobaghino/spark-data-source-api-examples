@@ -26,7 +26,7 @@ object Main {
     spark.sql(
       s"""SELECT substring(name, 0, 1) AS initial, collect_list(name) AS names, sum(stars) AS stars_sum
          |FROM apache_projects
-         |GROUP BY substring(name, 0, 1)
+         |GROUP BY initial
          |ORDER BY stars_sum DESC
          |""".stripMargin).
       show(truncate = false)

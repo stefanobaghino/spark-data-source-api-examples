@@ -7,17 +7,14 @@ import org.apache.spark.sql.types.{StringType, StructField, StructType}
 import org.slf4j.LoggerFactory
 
 object ExampleRelation {
-
-  val logger = LoggerFactory.getLogger(classOf[ExampleRelation])
-
+  private[ExampleRelation] val logger = LoggerFactory.getLogger(classOf[ExampleRelation])
 }
 
 /**
   * An example relation that reads a "columnar" file formatted as follows:
   * - on the first line, the number of rows `n`
-  * - for each column, there is one line with the column name and `n` with the value for each row
-  * @param sqlContext
-  * @param content
+  * - for each column, there is one line with the column name and `n` with the values for each row
+  * - all values are strings
   */
 final class ExampleRelation(override val sqlContext: SQLContext, content: IndexedSeq[String])
   extends BaseRelation with PrunedScan {
